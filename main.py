@@ -20,12 +20,13 @@ def chat():
 
     # IMAGE
     if any(word in msg.lower() for word in ["draw","image","photo","picture"]):
-        API_URL = "https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5"
+        # API_URL = "https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5"
+        API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
 
         headers = {
-            "Authorization": f"Bearer {HF_KEY}"
+            "Authorization": f"Bearer {HF_KEY}",
+            "Content-Type": "application/json"
         }
-
         print("===== IMAGE DEBUG START =====")
         print("USER INPUT:", msg)
 
