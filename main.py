@@ -11,9 +11,19 @@ GROQ_KEY = os.getenv("GROQ_KEY")
 def home():
     return render_template("index.html")
     
-print("USER MESSAGE:", msg)
-print("HF STATUS:", response.status_code)
-print("HF RESPONSE:", response.text)
+print("===== IMAGE DEBUG START =====")
+
+print("USER INPUT:", user_input)
+
+response = requests.post(API_URL, headers=headers, json={
+    "inputs": user_input
+})
+
+print("STATUS CODE:", response.status_code)
+print("HEADERS:", response.headers)
+print("RESPONSE TEXT:", response.text[:500])  # full nahi, thoda hi
+
+print("===== IMAGE DEBUG END =====")
 
 # ---------------- CHAT ----------------
 @app.route("/chat", methods=["POST"])
