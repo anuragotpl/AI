@@ -10,20 +10,7 @@ GROQ_KEY = os.getenv("GROQ_KEY")
 @app.route("/")
 def home():
     return render_template("index.html")
-    
-print("===== IMAGE DEBUG START =====")
 
-print("USER INPUT:", user_input)
-
-response = requests.post(API_URL, headers=headers, json={
-    "inputs": user_input
-})
-
-print("STATUS CODE:", response.status_code)
-print("HEADERS:", response.headers)
-print("RESPONSE TEXT:", response.text[:500])  # full nahi, thoda hi
-
-print("===== IMAGE DEBUG END =====")
 
 # ---------------- CHAT ----------------
 @app.route("/chat", methods=["POST"])
@@ -39,11 +26,20 @@ def chat():
             "Authorization": f"Bearer {HF_KEY}"
         }
 
+        print("===== IMAGE DEBUG START =====")
+        print("USER INPUT:", msg)
+
         response = requests.post(API_URL, headers=headers, json={
             "inputs": msg
         })
 
-        if response.status_code == 200:
+        print("STATUS CODE:", response.status_code)
+        print("HEADERS:", dict(response.headers))
+        print("RESPONSE TEXT:", response.text[:300])
+
+        print("===== IMAGE DEBUG END =====")
+
+        if response.status_code == 200 and "image" in response.headers.get("content-type", ""):
             filename = f"static/output_{int(time.time())}.png"
 
             with open(filename, "wb") as f:
@@ -51,7 +47,11 @@ def chat():
 
             return jsonify({"type":"image","file":filename})
 
-        return jsonify({"type":"text","message":"Image error"})
+        else:
+            return jsonify({
+                "type":"text",
+                "message": f"Image error | Status: {response.status_code}"
+            })
 
     # TEXT (GROQ)
     else:
