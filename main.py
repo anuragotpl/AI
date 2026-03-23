@@ -10,7 +10,10 @@ GROQ_KEY = os.getenv("GROQ_KEY")
 @app.route("/")
 def home():
     return render_template("index.html")
-
+    
+print("USER MESSAGE:", msg)
+print("HF STATUS:", response.status_code)
+print("HF RESPONSE:", response.text)
 
 # ---------------- CHAT ----------------
 @app.route("/chat", methods=["POST"])
