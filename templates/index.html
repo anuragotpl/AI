@@ -198,11 +198,11 @@ function scrollBottom(){
 
 function typingEffect(element, text){
   let i = 0;
-  element.textContent = "";  // 👈 important
+  element.textContent = "";
 
   function type(){
     if(i < text.length){
-      element.textContent += text.charAt(i);  // 👈 FIX
+      element.textContent += text.charAt(i);
       i++;
       setTimeout(type, 15);
     }
@@ -231,30 +231,36 @@ function addMessage(role, content, typing=false){
   let bubble = document.createElement("div");
   bubble.className = "bubble";
 
+  // ✅ TEXT ONLY container
+  let textDiv = document.createElement("div");
+  textDiv.className = "text";
+
+  // copy button
   let copyBtn = document.createElement("span");
   copyBtn.className = "copy-btn";
   copyBtn.innerText = "📋";
   copyBtn.onclick = () => navigator.clipboard.writeText(content);
 
+  // time
   let time = document.createElement("div");
   time.className = "time";
   time.innerText = new Date().toLocaleTimeString();
 
-  if(content.includes("```")){
-    bubble.innerHTML = formatCode(content);
-  }
-  else if(content.endsWith(".png")){
-    bubble.innerHTML = `<img src="${content}" width="200">`;
+  // 👉 CONTENT LOGIC
+  if(content.endsWith(".png")){
+    textDiv.innerHTML = `<img src="${content}" width="200">`;
   }
   else{
     if(typing){
-      typingEffect(bubble, content);
+      typingEffect(textDiv, content); // 👈 ONLY HERE
     } else {
-      bubble.innerText = content;
+      textDiv.textContent = content;
     }
   }
 
+  // 👉 correct order
   bubble.appendChild(copyBtn);
+  bubble.appendChild(textDiv);
   bubble.appendChild(time);
 
   if(role === "ai"){
