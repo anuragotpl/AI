@@ -198,14 +198,16 @@ function scrollBottom(){
 
 function typingEffect(element, text){
   let i = 0;
-  element.innerHTML = "";
+  element.textContent = "";  // 👈 important
+
   function type(){
     if(i < text.length){
-      element.innerHTML += text.charAt(i);
+      element.textContent += text.charAt(i);  // 👈 FIX
       i++;
-      setTimeout(type, 10);
+      setTimeout(type, 15);
     }
   }
+
   type();
 }
 
