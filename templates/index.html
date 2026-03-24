@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Chatbot</title>
+<title>AnuAI Chat</title>
 
 <style>
 body {
@@ -12,6 +12,7 @@ body {
   color: white;
 }
 
+/* Layout */
 .container {
   display: flex;
   height: 100vh;
@@ -19,64 +20,64 @@ body {
 
 /* Sidebar */
 .sidebar {
-  width: 260px;
+  width: 250px;
   background: #020617;
   padding: 15px;
   border-right: 1px solid #1e293b;
 }
 
-.chat-history {
-  margin-top: 20px;
+.sidebar h2 {
+  margin: 0;
 }
 
-.chat-item {
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.chat-item:hover {
-  background: #1e293b;
-}
-
-/* Chat area */
 .chat-area {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
+/* Messages */
 .messages {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
 }
 
-/* Messages */
-.msg {
-  max-width: 70%;
-  padding: 12px;
-  border-radius: 10px;
-  margin-bottom: 10px;
+.message {
+  display: flex;
+  margin-bottom: 12px;
 }
 
 .user {
-  background: #2563eb;
-  margin-left: auto;
+  justify-content: flex-end;
 }
 
-.bot {
+.ai {
+  justify-content: flex-start;
+}
+
+.bubble {
+  max-width: 65%;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.user .bubble {
+  background: #2563eb;
+}
+
+.ai .bubble {
   background: #1e293b;
 }
 
 /* Input */
-.input-box {
+.input-area {
   display: flex;
   padding: 15px;
   border-top: 1px solid #1e293b;
 }
 
-.input-box input {
+.input-area input {
   flex: 1;
   padding: 12px;
   border-radius: 8px;
@@ -84,7 +85,7 @@ body {
   outline: none;
 }
 
-.input-box button {
+.input-area button {
   margin-left: 10px;
   padding: 10px 15px;
   background: #22c55e;
@@ -92,50 +93,117 @@ body {
   border-radius: 8px;
   cursor: pointer;
 }
+
+/* Loader */
+.loader {
+  border: 3px solid #1e293b;
+  border-top: 3px solid #22c55e;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
 </style>
 </head>
 
 <body>
 
-<div id="chatbox"></div>
+<div class="container">
 
-<div class="input-area">
-    <input id="msg" placeholder="Type message...">
-    <button onclick="send()">Send</button>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>🤖 AnuAI</h2>
+    <p style="font-size:12px;color:gray;">Your AI Assistant</p>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-area">
+
+    <div id="chatbox" class="messages"></div>
+
+    <div class="input-area">
+      <input id="msg" placeholder="Type message...">
+      <button onclick="send()" id="sendBtn">Send</button>
+    </div>
+
+  </div>
+
 </div>
 
 <script>
 
-function addMessage(role, content){
+// Add message
+function addMessage(role, content, isTyping=false){
     let div = document.createElement("div");
     div.className = "message " + role;
 
     let bubble = document.createElement("div");
     bubble.className = "bubble";
 
-    // IMAGE CHECK
-    if(content.endsWith(".png")){
-        bubble.innerHTML = `
-            <img src="${content}" width="200"><br>
-            <a href="${content}" download>Download</a>
-        `;
+    if(isTyping){
+        typingEffect(bubble, content);
     } else {
-        bubble.innerText = content;
+        if(content.endsWith(".png")){
+            bubble.innerHTML = `
+                <img src="${content}" width="200"><br>
+                <a href="${content}" download>Download</a>
+            `;
+        } else {
+            bubble.innerText = content;
+        }
     }
 
     div.appendChild(bubble);
     document.getElementById("chatbox").appendChild(div);
+
+    scrollBottom();
 }
 
+// Typing effect
+function typingEffect(element, text) {
+  let i = 0;
+  element.innerHTML = "";
 
+  function type() {
+    if (i < text.length) {
+      element.innerHTML += text.charAt(i);
+      i++;
+      setTimeout(type, 15);
+    }
+  }
+  type();
+}
+
+// Scroll auto
+function scrollBottom(){
+    let box = document.getElementById("chatbox");
+    box.scrollTop = box.scrollHeight;
+}
+
+// Send message
 async function send(){
     let input = document.getElementById("msg");
+    let btn = document.getElementById("sendBtn");
     let msg = input.value.trim();
 
     if(!msg) return;
 
     addMessage("user", msg);
     input.value = "";
+
+    // disable button
+    btn.disabled = true;
+
+    // loader
+    let loaderDiv = document.createElement("div");
+    loaderDiv.className = "message ai";
+    loaderDiv.innerHTML = `<div class="bubble"><div class="loader"></div></div>`;
+    document.getElementById("chatbox").appendChild(loaderDiv);
+    scrollBottom();
 
     let res = await fetch("/chat", {
         method: "POST",
@@ -145,12 +213,24 @@ async function send(){
 
     let data = await res.json();
 
+    // remove loader
+    loaderDiv.remove();
+
     if(data.type === "image"){
         addMessage("ai", data.file);
     } else {
-        addMessage("ai", data.message);
+        addMessage("ai", data.message, true); // typing effect
     }
+
+    btn.disabled = false;
 }
+
+// Enter to send
+document.getElementById("msg").addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+        send();
+    }
+});
 
 </script>
 
