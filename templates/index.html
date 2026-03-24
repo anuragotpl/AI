@@ -2,17 +2,16 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AnuAI Chat</title>
+<title>AnuAI Pro – Your Personal AI Assistant</title>
 
 <style>
 body {
   margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: #0f172a;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #0f172a, #020617);
   color: white;
 }
 
-/* Layout */
 .container {
   display: flex;
   height: 100vh;
@@ -21,31 +20,44 @@ body {
 /* Sidebar */
 .sidebar {
   width: 250px;
-  background: #020617;
   padding: 15px;
-  border-right: 1px solid #1e293b;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255,255,255,0.1);
 }
 
 .sidebar h2 {
   margin: 0;
 }
 
+.chat-item {
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.chat-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* Chat */
 .chat-area {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-/* Messages */
 .messages {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
 }
 
+/* Message */
 .message {
   display: flex;
-  margin-bottom: 12px;
+  margin-bottom: 15px;
+  animation: fadeIn 0.3s ease-in;
 }
 
 .user {
@@ -56,10 +68,18 @@ body {
   justify-content: flex-start;
 }
 
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin: 0 8px;
+}
+
 .bubble {
-  max-width: 65%;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
+  max-width: 65%;
+  position: relative;
 }
 
 .user .bubble {
@@ -67,30 +87,50 @@ body {
 }
 
 .ai .bubble {
-  background: #1e293b;
+  background: rgba(255,255,255,0.08);
+}
+
+/* Copy */
+.copy-btn {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.bubble:hover .copy-btn {
+  opacity: 1;
+}
+
+/* Time */
+.time {
+  font-size: 10px;
+  color: gray;
+  margin-top: 5px;
 }
 
 /* Input */
 .input-area {
   display: flex;
   padding: 15px;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
 
 .input-area input {
   flex: 1;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
   outline: none;
 }
 
 .input-area button {
   margin-left: 10px;
-  padding: 10px 15px;
-  background: #22c55e;
+  padding: 10px 18px;
+  border-radius: 10px;
   border: none;
-  border-radius: 8px;
+  background: #22c55e;
   cursor: pointer;
 }
 
@@ -107,6 +147,11 @@ body {
 @keyframes spin {
   100% { transform: rotate(360deg); }
 }
+
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(10px);}
+  to {opacity: 1; transform: translateY(0);}
+}
 </style>
 </head>
 
@@ -114,13 +159,11 @@ body {
 
 <div class="container">
 
-  <!-- Sidebar -->
   <div class="sidebar">
     <h2>🤖 AnuAI</h2>
-    <p style="font-size:12px;color:gray;">Your AI Assistant</p>
+    <button onclick="newChat()">+ New Chat</button>
   </div>
 
-  <!-- Chat -->
   <div class="chat-area">
 
     <div id="chatbox" class="messages"></div>
@@ -136,100 +179,136 @@ body {
 
 <script>
 
-// Add message
-function addMessage(role, content, isTyping=false){
-    let div = document.createElement("div");
-    div.className = "message " + role;
+let chats = JSON.parse(localStorage.getItem("chats")) || [];
 
-    let bubble = document.createElement("div");
-    bubble.className = "bubble";
-
-    if(isTyping){
-        typingEffect(bubble, content);
-    } else {
-        if(content.endsWith(".png")){
-            bubble.innerHTML = `
-                <img src="${content}" width="200"><br>
-                <a href="${content}" download>Download</a>
-            `;
-        } else {
-            bubble.innerText = content;
-        }
-    }
-
-    div.appendChild(bubble);
-    document.getElementById("chatbox").appendChild(div);
-
-    scrollBottom();
+function saveChat(role, msg){
+  chats.push({role, msg});
+  localStorage.setItem("chats", JSON.stringify(chats));
 }
 
-// Typing effect
-function typingEffect(element, text) {
+function newChat(){
+  document.getElementById("chatbox").innerHTML = "";
+  localStorage.removeItem("chats");
+}
+
+function scrollBottom(){
+  let box = document.getElementById("chatbox");
+  box.scrollTop = box.scrollHeight;
+}
+
+function typingEffect(element, text){
   let i = 0;
   element.innerHTML = "";
-
-  function type() {
-    if (i < text.length) {
+  function type(){
+    if(i < text.length){
       element.innerHTML += text.charAt(i);
       i++;
-      setTimeout(type, 15);
+      setTimeout(type, 10);
     }
   }
   type();
 }
 
-// Scroll auto
-function scrollBottom(){
-    let box = document.getElementById("chatbox");
-    box.scrollTop = box.scrollHeight;
+function formatCode(text){
+  return text.replace(/```(.*?)```/gs,
+    '<pre style="background:black;padding:10px;border-radius:8px;overflow:auto;"><code>$1</code></pre>'
+  );
 }
 
-// Send message
-async function send(){
-    let input = document.getElementById("msg");
-    let btn = document.getElementById("sendBtn");
-    let msg = input.value.trim();
+function addMessage(role, content, typing=false){
 
-    if(!msg) return;
+  let div = document.createElement("div");
+  div.className = "message " + role;
 
-    addMessage("user", msg);
-    input.value = "";
+  let avatar = document.createElement("img");
+  avatar.className = "avatar";
+  avatar.src = role === "user"
+    ? "https://i.pravatar.cc/40?img=3"
+    : "https://i.pravatar.cc/40?img=5";
 
-    // disable button
-    btn.disabled = true;
+  let bubble = document.createElement("div");
+  bubble.className = "bubble";
 
-    // loader
-    let loaderDiv = document.createElement("div");
-    loaderDiv.className = "message ai";
-    loaderDiv.innerHTML = `<div class="bubble"><div class="loader"></div></div>`;
-    document.getElementById("chatbox").appendChild(loaderDiv);
-    scrollBottom();
+  let copyBtn = document.createElement("span");
+  copyBtn.className = "copy-btn";
+  copyBtn.innerText = "📋";
+  copyBtn.onclick = () => navigator.clipboard.writeText(content);
 
-    let res = await fetch("/chat", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({message: msg})
-    });
+  let time = document.createElement("div");
+  time.className = "time";
+  time.innerText = new Date().toLocaleTimeString();
 
-    let data = await res.json();
-
-    // remove loader
-    loaderDiv.remove();
-
-    if(data.type === "image"){
-        addMessage("ai", data.file);
+  if(content.includes("```")){
+    bubble.innerHTML = formatCode(content);
+  }
+  else if(content.endsWith(".png")){
+    bubble.innerHTML = `<img src="${content}" width="200">`;
+  }
+  else{
+    if(typing){
+      typingEffect(bubble, content);
     } else {
-        addMessage("ai", data.message, true); // typing effect
+      bubble.innerText = content;
     }
+  }
 
-    btn.disabled = false;
+  bubble.appendChild(copyBtn);
+  bubble.appendChild(time);
+
+  if(role === "ai"){
+    div.appendChild(avatar);
+    div.appendChild(bubble);
+  } else {
+    div.appendChild(bubble);
+    div.appendChild(avatar);
+  }
+
+  document.getElementById("chatbox").appendChild(div);
+  scrollBottom();
 }
 
-// Enter to send
+async function send(){
+  let input = document.getElementById("msg");
+  let btn = document.getElementById("sendBtn");
+  let msg = input.value.trim();
+
+  if(!msg) return;
+
+  addMessage("user", msg);
+  saveChat("user", msg);
+
+  input.value = "";
+  btn.disabled = true;
+
+  let loaderDiv = document.createElement("div");
+  loaderDiv.className = "message ai";
+  loaderDiv.innerHTML = `<div class="bubble"><div class="loader"></div></div>`;
+  document.getElementById("chatbox").appendChild(loaderDiv);
+  scrollBottom();
+
+  let res = await fetch("/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({message: msg})
+  });
+
+  let data = await res.json();
+
+  loaderDiv.remove();
+
+  if(data.type === "image"){
+    addMessage("ai", data.file);
+    saveChat("ai", data.file);
+  } else {
+    addMessage("ai", data.message, true);
+    saveChat("ai", data.message);
+  }
+
+  btn.disabled = false;
+}
+
 document.getElementById("msg").addEventListener("keypress", function(e){
-    if(e.key === "Enter"){
-        send();
-    }
+  if(e.key === "Enter") send();
 });
 
 </script>
